@@ -116,7 +116,7 @@ let cods = parseFloat(localStorage.getItem("cods") || "0");
 let temporizador;
 let autoRestartTimeout;
 
-let playerName = null; // ✅ nombre solo una vez por partida
+let playerName = null;
 
 recordSpan.textContent = record;
 codsSpan.textContent = cods.toFixed(10);
@@ -193,7 +193,7 @@ function restartGame() {
     tipotsSpan.textContent = tipots;
     gameOverDiv.style.display = "none";
 
-    playerName = null; // ✅ vuelve a pedir nombre en nueva partida
+    playerName = null; 
 
     tetera.style.width = "200px";
     tetera.style.height = "200px";
@@ -273,3 +273,4 @@ document.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
