@@ -3,274 +3,184 @@
 <head>
 <meta charset="UTF-8">
 <title>Tipot</title>
+
 <style>
-body {
-    margin: 0;
-    height: 100vh;
-    width: 100vw;
-    background-color: black;
-    font-family: sans-serif;
-    overflow: hidden;
-    position: relative;
+body{
+    margin:0;
+    background:black;
+    overflow:hidden;
+    font-family:sans-serif;
 }
 
-.scoreboard {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    color: white;
-    font-size: 24px;
-    text-align: right;
-    width: 200px;
+.scoreboard{
+    position:absolute;
+    top:10px;
+    right:20px;
+    color:white;
+    font-size:22px;
+    text-align:right;
 }
 
-#skinsBtn, #leaderboardBtn {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    font-size: 18px;
-    cursor: pointer;
-    background-color: #222;
-    color: white;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding: 10px 15px;
-    margin-right: 10px;
+#skinsBtn,#leaderboardBtn{
+    position:fixed;
+    bottom:20px;
+    left:20px;
+    background:#222;
+    color:white;
+    border:1px solid white;
+    padding:10px;
+    cursor:pointer;
 }
 
-#leaderboardBtn {
-    left: 100px;
+#leaderboardBtn{ left:120px; }
+
+#timer{
+    position:absolute;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-family:monospace;
 }
 
-#timer {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-family: monospace;
-    font-size: 14px;
+.tetera{
+    position:absolute;
+    width:200px;
+    cursor:pointer;
 }
 
-.tetera {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    cursor: pointer;
-}
-
-#gameOver {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    display: none;
-    color: red;
-    font-size: 64px;
-    font-weight: bold;
-}
-
-#gameOverMessage {
-    color: white;
-    font-size: 18px;
-    margin-top: 20px;
-}
-
-.clone {
-    filter: brightness(70%);
-    pointer-events: auto;
-}
+.clone{ filter:brightness(70%); }
 </style>
 </head>
+
 <body>
 
 <div class="scoreboard">
-    <div>TIPOTS: <span id="tipots">0</span></div>
-    <div>Record: <span id="record">0</span></div>
-    <div>CODS: <span id="cods">0</span></div>
+TIPOTS: <span id="tipots">0</span><br>
+Record: <span id="record">0</span><br>
+CODS: <span id="cods">0</span>
 </div>
 
 <button id="skinsBtn">Skins</button>
 <button id="leaderboardBtn">Leaderboard</button>
 
-<div id="timer">Click the teapot to start</div>
+<div id="timer">Click the teapot</div>
 <img id="tetera" class="tetera">
 
-<div id="gameOver">
-    UH OH!
-    <div id="gameOverMessage">Press R to restart or wait 3 seconds</div>
-</div>
-
 <script>
-const tipotsSpan = document.getElementById("tipots");
-const recordSpan = document.getElementById("record");
-const codsSpan = document.getElementById("cods");
-const timerDiv = document.getElementById("timer");
-const tetera = document.getElementById("tetera");
-const gameOverDiv = document.getElementById("gameOver");
+const tipotsSpan=document.getElementById("tipots");
+const recordSpan=document.getElementById("record");
+const codsSpan=document.getElementById("cods");
+const timerDiv=document.getElementById("timer");
+const tetera=document.getElementById("tetera");
 
-let tipots = 0;
-let record = parseInt(localStorage.getItem("record") || "0");
-let cods = parseFloat(localStorage.getItem("cods") || "0");
-let temporizador;
-let autoRestartTimeout;
+let tipots=0;
+let record=parseInt(localStorage.getItem("record")||"0");
+let cods=parseFloat(localStorage.getItem("cods")||"0");
+let timer=null;
+let playerName=null;
 
-let playerName = null;
+recordSpan.textContent=record;
+codsSpan.textContent=cods.toFixed(2);
 
-recordSpan.textContent = record;
-codsSpan.textContent = cods.toFixed(10);
-
-const skins = {
-    Teapot: "skins/Teapot.png",
-    Teakettle: "skins/TeakettleTipotSkin1.png",
-    Doge: "skins/Doge.png"
+const skins={
+    Teapot:"./skins/Teapot.png",
+    Teakettle:"./skins/TeakettleTipotSkin1.png",
+    Doge:"./skins/Doge.png"
 };
 
-let savedSkinName = localStorage.getItem("selectedSkin") || "Teapot";
-tetera.src = skins[savedSkinName] || skins["Teapot"];
+let savedSkin=localStorage.getItem("selectedSkin")||"Teapot";
+tetera.src=skins[savedSkin]||skins.Teapot;
 
-document.getElementById("skinsBtn").addEventListener("click", () => {
-    window.open("skins.html", "_blank");
-});
-document.getElementById("leaderboardBtn").addEventListener("click", () => {
-    window.open("leaderboard.html", "_blank");
-});
+document.getElementById("skinsBtn").onclick=()=>window.open("skins.html","_blank");
+document.getElementById("leaderboardBtn").onclick=()=>window.open("leaderboard.html","_blank");
 
-function updateCODS() {
-    cods = record / 10;
-    codsSpan.textContent = cods.toFixed(10);
-    localStorage.setItem("cods", cods);
+// TELEPORT
+function teleport(el){
+    const x=Math.random()*(window.innerWidth-200);
+    const y=Math.random()*(window.innerHeight-200);
+    el.style.left=x+"px";
+    el.style.top=y+"px";
 }
 
-function updateLeaderboard(name) {
-    let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+teleport(tetera);
 
-    const index = leaderboard.findIndex(p => p.name === name);
-    const playerData = { name, score: record, skin: savedSkinName };
-
-    if(index >= 0) {
-        if(leaderboard[index].score < record) leaderboard[index] = playerData;
-    } else {
-        leaderboard.push(playerData);
-    }
-
-    leaderboard.sort((a,b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0,50);
-
-    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+function updateCODS(){
+    cods=record/10;
+    codsSpan.textContent=cods.toFixed(2);
+    localStorage.setItem("cods",cods);
 }
 
-function saveRecord() {
-    localStorage.setItem("record", record);
+function updateLeaderboard(name){
+    let lb=JSON.parse(localStorage.getItem("leaderboard")||"[]");
+    lb.push({name,score:record});
+    lb.sort((a,b)=>b.score-a.score);
+    lb=lb.slice(0,50);
+    localStorage.setItem("leaderboard",JSON.stringify(lb));
+}
 
-    if (!playerName) {
-        playerName = prompt("Ingresa tu nombre para el leaderboard:") || "Jugador";
-    }
-
+function saveRecord(){
+    localStorage.setItem("record",record);
+    if(!playerName) playerName=prompt("Nombre para leaderboard:")||"Jugador";
     updateLeaderboard(playerName);
 }
 
-function randomPosition() {
-    const x = Math.random() * (window.innerWidth - 200);
-    const y = Math.random() * (window.innerHeight - 200 - 50) + 25;
-    return {x, y};
-}
+function startTimer(){
+    clearInterval(timer);
+    const start=Date.now();
 
-function shrink(el) {
-    const currentWidth = el.clientWidth;
-    const newWidth = Math.max(20, currentWidth - 10);
-    el.style.width = newWidth + "px";
-    el.style.height = newWidth + "px";
-}
+    timer=setInterval(()=>{
+        const left=5-(Date.now()-start)/1000;
+        timerDiv.textContent=left.toFixed(2);
 
-function updateOpacity(el) {
-    el.style.opacity = tipots >= 50 ? 0.4 : 1;
-}
+        if(left<=0){
+            clearInterval(timer);
 
-function restartGame() {
-    tipots = 0;
-    tipotsSpan.textContent = tipots;
-    gameOverDiv.style.display = "none";
+            if(tipots>=record) saveRecord();
 
-    playerName = null; 
+            tipots=0;
+            tipotsSpan.textContent=0;
+            playerName=null;
+            timerDiv.textContent="Game Over";
 
-    tetera.style.width = "200px";
-    tetera.style.height = "200px";
-    tetera.style.left = (window.innerWidth/2 - tetera.clientWidth/2) + "px";
-    tetera.style.top = (window.innerHeight/2 - tetera.clientHeight/2) + "px";
-    tetera.style.opacity = 1;
+            document.querySelectorAll(".clone").forEach(c=>c.remove());
 
-    document.querySelectorAll(".clone").forEach(clone => clone.remove());
-}
-
-function startTimer(duration = 5) {
-    clearInterval(temporizador);
-    clearTimeout(autoRestartTimeout);
-    gameOverDiv.style.display = "none";
-
-    const start = Date.now();
-    temporizador = setInterval(() => {
-        const elapsed = (Date.now() - start) / 1000;
-        const remaining = Math.max(0, duration - elapsed);
-        timerDiv.textContent = remaining.toFixed(2);
-
-        if (remaining <= 0) {
-            clearInterval(temporizador);
-            gameOverDiv.style.display = "block";
-            autoRestartTimeout = setTimeout(restartGame, 3000);
+            setTimeout(()=>timerDiv.textContent="Click the teapot",2000);
         }
-    }, 16);
+    },16);
 }
 
-function onTeteraClick(e) {
-    const el = e.currentTarget;
-    const isOriginal = el.id === "tetera";
+function onClick(e){
+    const el=e.currentTarget;
+    const original=(el.id==="tetera");
 
-    if (isOriginal) {
-        let points = tipots >= 30 ? 2 : 1;
-        tipots += points;
-        tipotsSpan.textContent = tipots;
+    if(original){
+        tipots++;
+        tipotsSpan.textContent=tipots;
 
-        if (tipots > record) {
-            record = tipots;
-            recordSpan.textContent = record;
+        if(tipots>record){
+            record=tipots;
+            recordSpan.textContent=record;
             updateCODS();
-            saveRecord();
         }
 
-        startTimer(5);
+        startTimer();
     }
 
-    updateOpacity(el);
-    shrink(el);
+    teleport(el);
 
-    const pos = randomPosition();
-    el.style.left = pos.x + "px";
-    el.style.top = pos.y + "px";
-
-    if (isOriginal && tipots >= 30) {
-        const clone = el.cloneNode(true);
+    if(original && tipots>=30){
+        const clone=el.cloneNode(true);
         clone.classList.add("clone");
         clone.removeAttribute("id");
-        const clonePos = randomPosition();
-        clone.style.left = clonePos.x + "px";
-        clone.style.top = clonePos.y + "px";
+        teleport(clone);
         document.body.appendChild(clone);
-        clone.addEventListener("click", onTeteraClick);
+        clone.onclick=onClick;
     }
 }
 
-tetera.addEventListener("click", onTeteraClick);
-
-document.addEventListener("keydown", (e) => {
-    if (e.code === "KeyR" && gameOverDiv.style.display === "block") {
-        clearTimeout(autoRestartTimeout);
-        restartGame();
-    }
-});
+tetera.onclick=onClick;
 </script>
 
 </body>
 </html>
-
