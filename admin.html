@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel - Tipot</title>
+<style>
+body {
+    background:black; 
+    color:white; 
+    font-family:monospace; 
+    display:flex; 
+    flex-direction:column; 
+    align-items:center; 
+    padding-top:50px; 
+}
+h1 { color:yellow; }
+input, button { font-family:monospace; font-size:16px; margin:5px; padding:5px; }
+#debugPanel { margin-top:20px; border:1px solid white; padding:10px; display:none; }
+.tetera, .clone { width:100px; height:100px; position:absolute; cursor:grab; }
+button.reset { background:red; color:white; }
+#leaderboard { margin-top:20px; border:1px solid white; padding:10px; width:250px; }
+</style>
+</head>
+<body>
+
+<h1>Admin Panel</h1>
+
+<div id="codsSection">
+    <label>Añadir CODS: </label>
+    <input type="number" id="addCodsInput" placeholder="Cantidad">
+    <button id="addCodsBtn">Añadir</button>
+</div>
+
+<div>
+    <label>Guardar Récord: </label>
+    <input type="number" id="recordInput" placeholder="Tu puntuación">
+    <button id="saveRecordBtn">Guardar Récord</button>
+</div>
+
+<div id="leaderboard">
+    <h3>Leaderboard</h3>
+    <ul id="leaderboardList"></ul>
+</div>
+
+<div>
+    <button id="unlockDebugBtn">Desbloquear Modo Debug</button>
+</div>
+
+<div>
+    <button id="resetAllBtn" class="reset">Resetear todo: Leaderboard, CODS y Records</button>
+</div>
+
+<div id="debugPanel">
+    <p style="color:red;">Modo Debug Activado</p>
+    <label>Cambiar fondo:</label>
+    <input type="color" id="bgColorPicker">
+</div>
+
+<script>
+// --- CODS ---
+const addCodsBtn = document.getElementById("addCodsBtn");
+const addCodsInput = document.getElementById("addCodsInput");
+
+addCodsBtn.addEventListener("click", () => {
+    let add = parseFloat(addCodsInput.value);
+    if(!isNaN(add)){
+        let cods = parseFloat(localStorage.getItem("cods") || "0");
+        cods += add;
+        localStorage.setItem("cods", cods.toFixed(10));
+        alert(`Se añadieron ${add} CODS. Total: ${cods.toFixed(10)}`);
+    }
+});
+
+// --- RECORD & LEADERBOARD ---
+const saveRecordBtn = document.getElementById("saveRecordBtn");
+const recordInput = document.getElementById("recordInput");
+const leaderboardList = document.getElementById("leaderboardList");
+
+function updateLeaderboardUI(){
+    const leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+    leaderboardList.innerHTML = "";
+    leaderboard.sort((a,b)=>b.score-a.score);
+    leaderboard.forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.name} = ${entry.score}`;
+        leaderboardList.appendChild(li);
+    });
+}
+
+saveRecordBtn.addEventListener("click", () => {
+    let score = parseFloat(recordInput.value);
+    if(isNaN(score)) return alert("Ingresa un número válido");
+    
+    let name = prompt("Ingresa tu nombre para el leaderboard:");
+    if(!name) return alert("Se necesita un nombre");
+    
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+    leaderboard.push({name, score});
+    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+    
+    alert(`Récord de ${score} guardado para ${name}`);
+    updateLeaderboardUI();
+});
+
+// Inicializar leaderboard al cargar
+updateLeaderboardUI();
+
+// --- MODO DEBUG ---
+const unlockDebugBtn = document.getElementById("unlockDebugBtn");
+const debugPanel = document.getElementById("debugPanel");
+
+unlockDebugBtn.addEventListener("click", () => {
+    debugPanel.style.display = "block";
+    document.body.style.outline = "2px dashed red";
+    alert("Modo Debug desbloqueado. Ahora puedes mover teteras y cambiar fondo.");
+});
+
+// --- MOVER TETERAS EN DEBUG ---
+let selectedTetera = null;
+document.addEventListener("mousedown", e => {
+    if(!debugPanel.style.display || debugPanel.style.display === "none") return;
+    if(e.target.classList.contains("tetera") || e.target.classList.contains("clone")){
+        selectedTetera = e.target;
+    }
+});
+document.addEventListener("mouseup", e => { selectedTetera = null; });
+document.addEventListener("mousemove", e => {
+    if(selectedTetera){
+        selectedTetera.style.left = (e.clientX - selectedTetera.clientWidth/2) + "px";
+        selectedTetera.style.top = (e.clientY - selectedTetera.clientHeight/2) + "px";
+    }
+});
+
+// --- CAMBIAR FONDO ---
+document.getElementById("bgColorPicker").addEventListener("input", e => {
+    document.body.style.backgroundColor = e.target.value;
+});
+
+// --- P+M2 para cambiar textura/color ---
+let pPressed = false;
+document.addEventListener("keydown", e => {
+    if(e.code === "KeyP") pPressed = true;
+    if(pPressed && e.code === "KeyM"){ // simulamos M2
+        const teteras = document.querySelectorAll(".tetera, .clone");
+        teteras.forEach(t => {
+            t.style.filter = "hue-rotate(" + Math.floor(Math.random()*360) + "deg)";
+        });
+    }
+});
+document.addEventListener("keyup", e => {
+    if(e.code === "KeyP") pPressed = false;
+});
+
+// --- RESET TOTAL ---
+const resetAllBtn = document.getElementById("resetAllBtn");
+resetAllBtn.addEventListener("click", () => {
+    if(confirm("¿Seguro que quieres borrar todo? Esto eliminará leaderboard, CODS y récords.")){
+        localStorage.removeItem("leaderboard");
+        localStorage.removeItem("cods");
+        localStorage.removeItem("record");
+        updateLeaderboardUI();
+        alert("Todo ha sido borrado. Leaderboard, CODS y Records eliminados.");
+    }
+});
+</script>
+</body>
+</html>

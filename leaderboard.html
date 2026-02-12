@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Leaderboard - Tipot</title>
+<style>
+body {
+    background-color: white;
+    color: black;
+    font-family: monospace;
+    text-align: center;
+    padding-top: 30px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    font-size: 18px;
+}
+li {
+    margin: 5px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>Leaderboard</h1>
+<ul id="leaderboardList"></ul>
+
+<script>
+// Obtener leaderboard
+const leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+const list = document.getElementById("leaderboardList");
+
+// Mostrar solo los nombres de los usuarios (top 10)
+leaderboard.slice(0,10).forEach(player => {
+    const item = document.createElement("li");
+    item.textContent = player.name;
+    list.appendChild(item);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Skins Tipot</title>
+<style>
+body {
+    background-color: black;
+    color: white;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 30px;
+}
+h1 { color: yellow; }
+.skinCard {
+    border: 1px solid white;
+    padding: 10px;
+    margin: 10px;
+    text-align: center;
+}
+.skinCard img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+}
+button {
+    font-family: monospace;
+    font-size: 16px;
+    margin-top: 5px;
+    cursor: pointer;
+}
+#codsDisplay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>Skins</h1>
+<div id="codsDisplay"></div>
+<div id="skinsContainer"></div>
+
+<script>
+// Datos de skins
+const skins = [
+    {name:"Teapot", src:"skins/Teapot.png", price:0},
+    {name:"Teakettle", src:"skins/TeakettleTipotSkin1.png", price:0},
+    {name:"Doge", src:"skins/Doge.png", price:999e+999}
+];
+
+// CODS
+let cods = parseFloat(localStorage.getItem("cods") || "0");
+const codsDisplay = document.getElementById("codsDisplay");
+function updateCODSDisplay() {
+    cods = parseFloat(localStorage.getItem("cods") || "0");
+    codsDisplay.textContent = `CODS: ${cods.toFixed(10)}`;
+}
+updateCODSDisplay();
+
+// Skins compradas
+let ownedSkins = JSON.parse(localStorage.getItem("ownedSkins") || '["Teapot","Teakettle"]');
+let equippedSkin = localStorage.getItem("selectedSkin") || "Teapot";
+
+const container = document.getElementById("skinsContainer");
+
+function renderSkins() {
+    container.innerHTML = "";
+    skins.forEach(skin => {
+        const card = document.createElement("div");
+        card.className = "skinCard";
+
+        const img = document.createElement("img");
+        img.src = skin.src;
+        img.onerror = () => { img.src = "skins/placeholder.png"; };
+
+        const nameDiv = document.createElement("div");
+        nameDiv.textContent = skin.name;
+
+        const btn = document.createElement("button");
+        if(!ownedSkins.includes(skin.name) && skin.price > 0){
+            btn.textContent = `Comprar (${skin.price} CODS)`;
+        } else if(skin.name === equippedSkin){
+            btn.textContent = "Equipped";
+            btn.disabled = true;
+        } else {
+            btn.textContent = "Equip";
+        }
+
+        btn.addEventListener("click", () => {
+            if(!ownedSkins.includes(skin.name) && skin.price > 0){
+                if(cods >= skin.price){
+                    cods -= skin.price;
+                    localStorage.setItem("cods", cods.toFixed(10));
+                    ownedSkins.push(skin.name);
+                    localStorage.setItem("ownedSkins", JSON.stringify(ownedSkins));
+                    equippedSkin = skin.name;
+                    localStorage.setItem("selectedSkin", equippedSkin);
+                    updateCODSDisplay();
+                    renderSkins();
+                    alert(`Compraste y equipaste la skin ${skin.name}`);
+                } else {
+                    alert("No tienes suficientes CODS!");
+                }
+            } else {
+                equippedSkin = skin.name;
+                localStorage.setItem("selectedSkin", equippedSkin);
+                renderSkins();
+                alert(`Equipped: ${skin.name}`);
+            }
+        });
+
+        card.appendChild(img);
+        card.appendChild(nameDiv);
+        card.appendChild(btn);
+        container.appendChild(card);
+    });
+}
+
+renderSkins();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tipot</title>
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    background-color: black;
+    font-family: sans-serif;
+    overflow: hidden;
+    position: relative;
+}
+
+.scoreboard {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: white;
+    font-size: 24px;
+    text-align: right;
+    width: 200px;
+}
+
+#skinsBtn, #leaderboardBtn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    background-color: #222;
+    color: white;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin-right: 10px;
+}
+
+#leaderboardBtn {
+    left: 100px;
+}
+
+#timer {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.tetera {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    cursor: pointer;
+}
+
+#gameOver {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: none;
+    color: red;
+    font-size: 64px;
+    font-weight: bold;
+}
+
+#gameOverMessage {
+    color: white;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+.clone {
+    filter: brightness(70%);
+    pointer-events: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="scoreboard">
+    <div>TIPOTS: <span id="tipots">0</span></div>
+    <div>Record: <span id="record">0</span></div>
+    <div>CODS: <span id="cods">0</span></div>
+</div>
+
+<button id="skinsBtn">Skins</button>
+<button id="leaderboardBtn">Leaderboard</button>
+
+<div id="timer">Click the teapot to start</div>
+<img id="tetera" class="tetera">
+
+<div id="gameOver">
+    UH OH!
+    <div id="gameOverMessage">Press R to restart or wait 3 seconds</div>
+</div>
+
+<script>
+const tipotsSpan = document.getElementById("tipots");
+const recordSpan = document.getElementById("record");
+const codsSpan = document.getElementById("cods");
+const timerDiv = document.getElementById("timer");
+const tetera = document.getElementById("tetera");
+const gameOverDiv = document.getElementById("gameOver");
+
+let tipots = 0;
+let record = parseInt(localStorage.getItem("record") || "0");
+let cods = parseFloat(localStorage.getItem("cods") || "0");
+let temporizador;
+let autoRestartTimeout;
+
+let playerName = null; // ✅ nombre solo una vez por partida
+
+recordSpan.textContent = record;
+codsSpan.textContent = cods.toFixed(10);
+
+const skins = {
+    Teapot: "skins/Teapot.png",
+    Teakettle: "skins/TeakettleTipotSkin1.png",
+    Doge: "skins/Doge.png"
+};
+
+let savedSkinName = localStorage.getItem("selectedSkin") || "Teapot";
+tetera.src = skins[savedSkinName] || skins["Teapot"];
+
+document.getElementById("skinsBtn").addEventListener("click", () => {
+    window.open("skins.html", "_blank");
+});
+document.getElementById("leaderboardBtn").addEventListener("click", () => {
+    window.open("leaderboard.html", "_blank");
+});
+
+function updateCODS() {
+    cods = record / 10;
+    codsSpan.textContent = cods.toFixed(10);
+    localStorage.setItem("cods", cods);
+}
+
+function updateLeaderboard(name) {
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+
+    const index = leaderboard.findIndex(p => p.name === name);
+    const playerData = { name, score: record, skin: savedSkinName };
+
+    if(index >= 0) {
+        if(leaderboard[index].score < record) leaderboard[index] = playerData;
+    } else {
+        leaderboard.push(playerData);
+    }
+
+    leaderboard.sort((a,b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0,50);
+
+    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+}
+
+function saveRecord() {
+    localStorage.setItem("record", record);
+
+    if (!playerName) {
+        playerName = prompt("Ingresa tu nombre para el leaderboard:") || "Jugador";
+    }
+
+    updateLeaderboard(playerName);
+}
+
+function randomPosition() {
+    const x = Math.random() * (window.innerWidth - 200);
+    const y = Math.random() * (window.innerHeight - 200 - 50) + 25;
+    return {x, y};
+}
+
+function shrink(el) {
+    const currentWidth = el.clientWidth;
+    const newWidth = Math.max(20, currentWidth - 10);
+    el.style.width = newWidth + "px";
+    el.style.height = newWidth + "px";
+}
+
+function updateOpacity(el) {
+    el.style.opacity = tipots >= 50 ? 0.4 : 1;
+}
+
+function restartGame() {
+    tipots = 0;
+    tipotsSpan.textContent = tipots;
+    gameOverDiv.style.display = "none";
+
+    playerName = null; // ✅ vuelve a pedir nombre en nueva partida
+
+    tetera.style.width = "200px";
+    tetera.style.height = "200px";
+    tetera.style.left = (window.innerWidth/2 - tetera.clientWidth/2) + "px";
+    tetera.style.top = (window.innerHeight/2 - tetera.clientHeight/2) + "px";
+    tetera.style.opacity = 1;
+
+    document.querySelectorAll(".clone").forEach(clone => clone.remove());
+}
+
+function startTimer(duration = 5) {
+    clearInterval(temporizador);
+    clearTimeout(autoRestartTimeout);
+    gameOverDiv.style.display = "none";
+
+    const start = Date.now();
+    temporizador = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000;
+        const remaining = Math.max(0, duration - elapsed);
+        timerDiv.textContent = remaining.toFixed(2);
+
+        if (remaining <= 0) {
+            clearInterval(temporizador);
+            gameOverDiv.style.display = "block";
+            autoRestartTimeout = setTimeout(restartGame, 3000);
+        }
+    }, 16);
+}
+
+function onTeteraClick(e) {
+    const el = e.currentTarget;
+    const isOriginal = el.id === "tetera";
+
+    if (isOriginal) {
+        let points = tipots >= 30 ? 2 : 1;
+        tipots += points;
+        tipotsSpan.textContent = tipots;
+
+        if (tipots > record) {
+            record = tipots;
+            recordSpan.textContent = record;
+            updateCODS();
+            saveRecord();
+        }
+
+        startTimer(5);
+    }
+
+    updateOpacity(el);
+    shrink(el);
+
+    const pos = randomPosition();
+    el.style.left = pos.x + "px";
+    el.style.top = pos.y + "px";
+
+    if (isOriginal && tipots >= 30) {
+        const clone = el.cloneNode(true);
+        clone.classList.add("clone");
+        clone.removeAttribute("id");
+        const clonePos = randomPosition();
+        clone.style.left = clonePos.x + "px";
+        clone.style.top = clonePos.y + "px";
+        document.body.appendChild(clone);
+        clone.addEventListener("click", onTeteraClick);
+    }
+}
+
+tetera.addEventListener("click", onTeteraClick);
+
+document.addEventListener("keydown", (e) => {
+    if (e.code === "KeyR" && gameOverDiv.style.display === "block") {
+        clearTimeout(autoRestartTimeout);
+        restartGame();
+    }
+});
+</script>
+
+</body>
+</html>
